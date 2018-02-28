@@ -9,19 +9,8 @@
 
 #include <homekit/homekit.h>
 #include <homekit/characteristics.h>
-#include "wifi.h"
+#include <wifi_config.h>
 #include "button.h"
-
-static void wifi_init() {
-    struct sdk_station_config wifi_config = {
-        .ssid = WIFI_SSID,
-        .password = WIFI_PASSWORD,
-    };
-
-    sdk_wifi_set_opmode(STATION_MODE);
-    sdk_wifi_station_set_config(&wifi_config);
-    sdk_wifi_station_connect();
-}
 
 static QueueHandle_t window_queue = NULL;
 
@@ -217,15 +206,6 @@ void button_callback(uint8_t gpio_num, button_event_t event) {
     }
 }
 
-void buttons_init() {
-    if (button_create(button1_gpio, 0, 4000, button_callback)) {
-        printf("Failed to initialize button\n");
-    }
-    if (button_create(button2_gpio, 0, 4000, button_callback)) {
-        printf("Failed to initialize button\n");
-    }
-}
-
 void on_update_target_position(homekit_characteristic_t *ch, homekit_value_t value, void *context) {
     if (value.format != homekit_format_uint8) {
         printf("Invalid value format: %d\n", value.format);
@@ -247,20 +227,20 @@ void on_update_target_position(homekit_characteristic_t *ch, homekit_value_t val
     return;
 }
 
-
+homekit_characteristic_t name = HOMEKIT_CHARACTERISTIC_(NAME, "ESP Homekit Motor");
 homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(.id=1, .category=homekit_accessory_category_window, .services=(homekit_service_t*[]){
         HOMEKIT_SERVICE(ACCESSORY_INFORMATION, .characteristics=(homekit_characteristic_t*[]){
-            HOMEKIT_CHARACTERISTIC(NAME, "Sonoff T1 Motor"),
-            HOMEKIT_CHARACTERISTIC(MANUFACTURER, "ageorgios"),
+            &name,
+            HOMEKIT_CHARACTERISTIC(MANUFACTURER, "iTead"),
             HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "037A2BABF19D"),
-            HOMEKIT_CHARACTERISTIC(MODEL, "Sonoff T1"),
+            HOMEKIT_CHARACTERISTIC(MODEL, "Sonoff T1 EU"),
             HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.1"),
             HOMEKIT_CHARACTERISTIC(IDENTIFY, led_identify),
             NULL
         }),
         HOMEKIT_SERVICE(WINDOW, .primary=true, .characteristics=(homekit_characteristic_t*[]){
-            HOMEKIT_CHARACTERISTIC(NAME, "Sonoff T1 Motor"),
+            HOMEKIT_CHARACTERISTIC(NAME, "ESP Homekit Motor"),
             &current_position,
             &target_position,
             &position_state,
@@ -276,12 +256,39 @@ homekit_server_config_t config = {
     .password = "111-11-111"
 };
 
-void user_init(void) {
-    uart_set_baud(0, 115200);
+void buttons_init() {
+    if (button_create(button1_gpio, 0, 4000, button_callback)) {
+        printf("Failed to initialize button\n");
+    }
+    if (button_create(button2_gpio, 0, 4000, button_callback)) {
+        printf("Failed to initialize button\n");
+    }
+}
+
+void create_accessory_name() {
+    uint8_t macaddr[6];
+    sdk_wifi_get_macaddr(STATION_IF, macaddr);
     
-    wifi_init();
-    gpio_init();
+    int name_len = snprintf(NULL, 0, "ESP Homekit Motor %02X:%02X:%02X",
+            macaddr[3], macaddr[4], macaddr[5]);
+    char *name_value = malloc(name_len+1);
+    snprintf(name_value, name_len+1, "ESP Homekit Motor %02X:%02X:%02X",
+            macaddr[3], macaddr[4], macaddr[5]);
+    
+    name.value = HOMEKIT_STRING(name_value);
+}
+
+void on_wifi_ready() {
     homekit_server_init(&config);
     window_init(20);
     buttons_init();
 }
+
+void user_init(void) {
+    uart_set_baud(0, 115200);
+    create_accessory_name();
+    wifi_config_init("ESP Homekit Motor", NULL, on_wifi_ready);
+    gpio_init();
+}
+
+
