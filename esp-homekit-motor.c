@@ -86,7 +86,7 @@ void send_window_command(window_command cmd) {
 }
 
 void window_task_commands(void *context) {
-    printf("Window Task Commands initialized");
+    printf("Window Task Commands initialized\n");
     window_command cmd;
     while(1) {
         if (xQueueReceive(window_queue, &cmd, 10/portTICK_PERIOD_MS)) {
@@ -149,6 +149,7 @@ void window_task_state(void *context) {
             case window_state_opening:
                 local_current_position++;
                 if (local_current_position > 100) local_current_position = 100;
+                if (local_current_position % 5 == 1) homekit_characteristic_notify(&current_position, HOMEKIT_UINT8(local_current_position));
                 printf("Current Position: %d\n", local_current_position);
                 if (local_current_position == local_target_position) {
                     stop_up();
@@ -160,6 +161,7 @@ void window_task_state(void *context) {
             case window_state_closing:
                 local_current_position--;
                 if (local_current_position < 0) local_current_position = 0;
+                if (local_current_position % 5 == 1) homekit_characteristic_notify(&current_position, HOMEKIT_UINT8(local_current_position));
                 printf("Current Position: %d\n", local_current_position);
                 if (local_current_position == local_target_position) {
                     stop_down();
@@ -172,7 +174,6 @@ void window_task_state(void *context) {
     }
 }
 
-
 void window_init(int dur) {
     local_state = window_state_idle;
     local_current_position = 0;
@@ -180,7 +181,7 @@ void window_init(int dur) {
     duration = dur; //seconds
     window_queue = xQueueCreate(1, sizeof(window_command));
     xTaskCreate(window_task_commands, "Window Task Commands", 256, NULL, 2, NULL);
-    xTaskCreate(window_task_state, "Window Task State", 256, NULL, 3, NULL);
+    xTaskCreate(window_task_state, "Window Task State", 256, NULL, 2, NULL);
 }
 
 void button_callback(uint8_t gpio_num, button_event_t event) {
@@ -280,15 +281,15 @@ void create_accessory_name() {
 
 void on_wifi_ready() {
     homekit_server_init(&config);
-    window_init(20);
+    window_init(5);
     buttons_init();
 }
 
 void user_init(void) {
     uart_set_baud(0, 115200);
     create_accessory_name();
-    wifi_config_init("ESP-Homekit-Motor", NULL, on_wifi_ready);
     gpio_init();
+    wifi_config_init("ESP-Homekit-Motor", NULL, on_wifi_ready);
 }
 
 
