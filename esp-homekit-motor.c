@@ -85,14 +85,14 @@ void led_identify(homekit_value_t _value) {
 }
 
 void send_window_command(window_command cmd) {
-    xQueueSendToBack(window_queue, &cmd, 1/portTICK_PERIOD_MS);
+    xQueueSendToBack(window_queue, &cmd, 10 / portTICK_PERIOD_MS);
 }
 
 void window_task_commands(void *context) {
     printf("Window Task Commands initialized\n");
     window_command cmd;
     while(1) {
-        if (xQueueReceive(window_queue, &cmd, 10/portTICK_PERIOD_MS)) {
+        if (xQueueReceive(window_queue, &cmd, 100 / portTICK_PERIOD_MS)) {
             switch(cmd) {
                 case window_command_idle: {
                     printf("command IDLE received\n");
