@@ -32,9 +32,12 @@ static int local_current_position = 0;
 static int local_target_position = 0;
 
 void on_update_target_position(homekit_characteristic_t *ch, homekit_value_t value, void *context);
-homekit_characteristic_t current_position = HOMEKIT_CHARACTERISTIC_(CURRENT_POSITION, 0);
-homekit_characteristic_t target_position  = HOMEKIT_CHARACTERISTIC_(TARGET_POSITION, 0, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(on_update_target_position));
-homekit_characteristic_t position_state   = HOMEKIT_CHARACTERISTIC_(POSITION_STATE, 0);
+homekit_value_t getter_current_position();
+homekit_value_t getter_position_state();
+homekit_value_t getter_target_position();
+homekit_characteristic_t current_position = HOMEKIT_CHARACTERISTIC_(CURRENT_POSITION, 0, .getter=getter_current_position);
+homekit_characteristic_t target_position  = HOMEKIT_CHARACTERISTIC_(TARGET_POSITION, 0, .callback=HOMEKIT_CHARACTERISTIC_CALLBACK(on_update_target_position), .getter=getter_target_position);
+homekit_characteristic_t position_state   = HOMEKIT_CHARACTERISTIC_(POSITION_STATE, 0, .getter=getter_position_state);
 
 const int led_gpio = 2;
 const int up_gpio = 12;
@@ -78,8 +81,6 @@ void led_identify(homekit_value_t _value) {
     printf("LED identify\n");
     xTaskCreate(led_identify_task, "LED identify", 128, NULL, 2, NULL);
 }
-
-void on_update_target_position();
 
 void send_window_command(window_command cmd) {
     xQueueSendToBack(window_queue, &cmd, 1/portTICK_PERIOD_MS);
@@ -199,7 +200,8 @@ void button_callback(uint8_t gpio_num, button_event_t event) {
         case window_state_opening:
         case window_state_closing:
             stop_up(); stop_down();
-            homekit_characteristic_notify(&target_position, HOMEKIT_UINT8(local_current_position));
+            local_target_position = local_current_position;
+            homekit_characteristic_notify(&target_position, HOMEKIT_UINT8(local_target_position));
             homekit_characteristic_notify(&current_position, HOMEKIT_UINT8(local_current_position));
             homekit_characteristic_notify(&position_state, HOMEKIT_UINT8(window_state_idle));
             local_state = window_state_idle;
@@ -226,6 +228,18 @@ void on_update_target_position(homekit_characteristic_t *ch, homekit_value_t val
         printf("HOMEKIT: No need to change position\n");
     }
     return;
+}
+
+homekit_value_t getter_current_position() {
+    return HOMEKIT_UINT8(local_current_position);
+}
+
+homekit_value_t getter_position_state() {
+    return HOMEKIT_UINT8(local_state);
+}
+
+homekit_value_t getter_target_position() {
+    return HOMEKIT_UINT8(local_target_position);
 }
 
 homekit_characteristic_t name = HOMEKIT_CHARACTERISTIC_(NAME, "ESP Homekit Motor");
