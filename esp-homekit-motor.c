@@ -12,6 +12,8 @@
 #include <wifi_config.h>
 #include "button.h"
 
+#define DURATION 10
+
 static QueueHandle_t window_queue = NULL;
 
 typedef enum {
@@ -295,7 +297,7 @@ void create_accessory_name() {
 
 void on_wifi_ready() {
     homekit_server_init(&config);
-    window_init(5);
+    window_init(DURATION);
     buttons_init();
 }
 
