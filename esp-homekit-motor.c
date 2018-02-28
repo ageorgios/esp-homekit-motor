@@ -287,7 +287,7 @@ void on_wifi_ready() {
 void user_init(void) {
     uart_set_baud(0, 115200);
     create_accessory_name();
-    wifi_config_init("ESP Homekit Motor", NULL, on_wifi_ready);
+    wifi_config_init("ESP-Homekit-Motor", NULL, on_wifi_ready);
     gpio_init();
 }
 
