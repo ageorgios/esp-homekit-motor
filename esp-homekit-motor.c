@@ -106,10 +106,9 @@ void window_task_commands(void *context) {
                             break;
                         case window_state_closing:
                             stop_down();
-                            homekit_characteristic_notify(&target_position, HOMEKIT_UINT8(local_current_position));
-                            homekit_characteristic_notify(&current_position, HOMEKIT_UINT8(local_current_position));
-                            homekit_characteristic_notify(&position_state, HOMEKIT_UINT8(window_state_idle));
                             local_state = window_state_idle;
+                            vTaskDelay(50 / portTICK_PERIOD_MS);
+                            homekit_characteristic_notify(&target_position, HOMEKIT_UINT8(local_target_position));
                             break;
                     }
                     break;
@@ -124,10 +123,9 @@ void window_task_commands(void *context) {
                             break;
                         case window_state_opening:
                             stop_up();
-                            homekit_characteristic_notify(&target_position, HOMEKIT_UINT8(local_current_position));
-                            homekit_characteristic_notify(&current_position, HOMEKIT_UINT8(local_current_position));
-                            homekit_characteristic_notify(&position_state, HOMEKIT_UINT8(window_state_idle));
                             local_state = window_state_idle;
+                            vTaskDelay(50 / portTICK_PERIOD_MS);
+                            homekit_characteristic_notify(&target_position, HOMEKIT_UINT8(local_target_position));
                             break;
                         case window_state_closing:
                             break;
@@ -144,12 +142,13 @@ void window_task_state(void *context) {
     const TickType_t xFrequency = duration*10 / portTICK_PERIOD_MS;
     printf("Window Task State initialized with Delay: %d ticks\n", xFrequency);
     while(1) {
-        vTaskDelayUntil( &xLastWakeTime, xFrequency);
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
         switch(local_state) {
             case window_state_idle:
                 break;
             case window_state_opening:
                 local_current_position++;
+                if (local_current_position > 100) local_current_position = 100;
                 printf("Current Position: %d\n", local_current_position);
                 if (local_current_position == local_target_position) {
                     stop_up();
@@ -160,6 +159,7 @@ void window_task_state(void *context) {
                 break;
             case window_state_closing:
                 local_current_position--;
+                if (local_current_position < 0) local_current_position = 0;
                 printf("Current Position: %d\n", local_current_position);
                 if (local_current_position == local_target_position) {
                     stop_down();
