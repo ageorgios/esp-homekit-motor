@@ -152,8 +152,7 @@ void window_task_state(void *context) {
             case window_state_opening:
                 local_current_position++;
                 if (local_current_position > 100) local_current_position = 100;
-                if (local_current_position % 10 == 1 || local_current_position % 10 == 9)
-                    homekit_characteristic_notify(&current_position, HOMEKIT_UINT8(local_current_position));
+                homekit_characteristic_notify(&current_position, HOMEKIT_UINT8(local_current_position));
                 printf("Current Position: %d\n", local_current_position);
                 if (local_current_position == local_target_position) {
                     stop_up();
@@ -165,8 +164,7 @@ void window_task_state(void *context) {
             case window_state_closing:
                 local_current_position--;
                 if (local_current_position < 0) local_current_position = 0;
-                if (local_current_position % 10 == 1 || local_current_position % 10 == 9)
-                    homekit_characteristic_notify(&current_position, HOMEKIT_UINT8(local_current_position));
+                homekit_characteristic_notify(&current_position, HOMEKIT_UINT8(local_current_position));
                 printf("Current Position: %d\n", local_current_position);
                 if (local_current_position == local_target_position) {
                     stop_down();
@@ -185,8 +183,8 @@ void window_init(int dur) {
     local_target_position = 0;
     duration = dur; //seconds
     window_queue = xQueueCreate(1, sizeof(window_command));
-    xTaskCreate(window_task_commands, "Window Task Commands", 1024, NULL, 2, NULL);
-    xTaskCreate(window_task_state, "Window Task State", 1024, NULL, 2, NULL);
+    xTaskCreate(window_task_commands, "Window Task Commands", 128, NULL, 2, NULL);
+    xTaskCreate(window_task_state, "Window Task State", 128, NULL, 2, NULL);
 }
 
 void button_callback(uint8_t gpio_num, button_event_t event) {
