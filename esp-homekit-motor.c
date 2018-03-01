@@ -183,8 +183,8 @@ void window_init(int dur) {
     local_target_position = 0;
     duration = dur; //seconds
     window_queue = xQueueCreate(1, sizeof(window_command));
-    xTaskCreate(window_task_commands, "Window Task Commands", 128, NULL, 2, NULL);
-    xTaskCreate(window_task_state, "Window Task State", 128, NULL, 2, NULL);
+    xTaskCreate(window_task_commands, "Window Task Commands", 256, NULL, 2, NULL);
+    xTaskCreate(window_task_state, "Window Task State", 256, NULL, 2, NULL);
 }
 
 void button_callback(uint8_t gpio_num, button_event_t event) {
